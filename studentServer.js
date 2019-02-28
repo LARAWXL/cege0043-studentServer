@@ -15,13 +15,13 @@ app.get('/', function (req, res) {
     res.send("hello world from the HTTP server");
 });
 
-// Modify the code so that the server returns test.html
-// when it is requested
-app.get('/test.html', function (req, res) {
-    // run some server-side code
-    console.log('test.html requested');
+// serve ANY html file that the user requests
+// (provided that it is on the server)
+app.get('/:fileName', function (req, res) { // run some server-side code
+    var fileName = req.params.fileName;
+    console.log(fileName + ' requested');
     // note that __dirname gives the path to the studentServer.js file
-    res.sendFile(__dirname + '/test.html');
+    res.sendFile(__dirname + '/' + fileName);
 });
 
 // adding functionality to log the requests
