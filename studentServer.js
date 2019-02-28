@@ -1,6 +1,6 @@
 // express is the server that forms part of the nodejs program
 var express = require('express');
-var path = require("path");
+var path = require('path');
 var app = express();
 
 // add an http server to serve files to the Edge browser
