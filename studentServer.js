@@ -17,7 +17,8 @@ app.get('/', function (req, res) {
 
 // serve ANY html file that the user requests
 // (provided that it is on the server)
-app.get('/:fileName', function (req, res) { // run some server-side code
+app.get('/:fileName', function (req, res) {
+    // run some server-side code
     var fileName = req.params.fileName;
     console.log(fileName + ' requested');
     // note that __dirname gives the path to the studentServer.js file
