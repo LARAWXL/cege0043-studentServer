@@ -47,10 +47,12 @@ httpServer.listen(4480);
 
 
 app.get('/', function (req, res) {
-    res.send("hello world from the HTTP server");
+    res.send("hello world from the HTTP server Lara");
 });
 
 // Add a simple app.get to test out the connection
+// the test's name is "postgistest"
+// test address http://developer.cege.ucl.ac.uk:30313/postgistest
 app.get('/postgistest', function (req, res) {
     pool.connect(function (err, client, done) {
         if (err) {
@@ -69,6 +71,16 @@ app.get('/postgistest', function (req, res) {
     });
 });
 
+// add POST request to studentServer.js
+app.post('/reflectData', function (req, res) {
+    // note that we are using POST here as we are uploading data
+    // so the parameters form part of the BODY of the request
+    // rather than the RESTful API
+    console.dir(req.body);
+
+    // for now, just echo the request back to the client
+    res.send(req.body);
+});
 
 // adding functionality to log the requests
 app.use(function (req, res, next) {
