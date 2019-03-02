@@ -82,6 +82,48 @@ app.post('/reflectData', function (req, res) {
     res.send(req.body);
 });
 
+// a POST command that connects to the database
+// and inserts a record into the formData table
+app.post('/uploadQuestion',function(req,res){
+	// note that we are using POST here as we are uploading data
+	// so the parameters form part of the BODY of the request rather than the RESTful API
+	console.dir(req.body);
+
+ 	pool.connect(function(err,client,done) {
+       	if(err){
+          	console.log("not able to get connection "+ err);
+           	res.status(400).send(err);
+       	}
+      // pull the geometry component together
+      // note that well known text requires the points as longitude/latitude !
+      // well known text should look like: 'POINT(-71.064544 42.28787)'
+      var param1 = req.body.question_title;
+      var param2 = req.body.question_text;
+      var param3 = req.body.answer_1;
+      var param4 = req.body.answer_2;
+      var param5 = req.body.answer_3;
+      var param6 = req.body.answer_4;
+      var param7 = req.body.port_id;
+      var param8 =req.body.correct_answer ;
+
+      var geometrystring = "st_geomfromtext('POINT("+req.body.longitude+ " "+req.body.latitude +")',4326)";
+      var querystring = "INSERT into public.quizquestion (question_title,question_text,answer_1,answer_2, answer_3, answer_4,port_id,correct_answer,location) values ";
+      querystring += "($1,$2,$3,$4,$5,$6,$7,$8,";
+      querystring += geometrystring + ")";
+             	console.log(querystring);
+             	client.query( querystring,[param1,param2,param3,param4,param5,param6,param7,param8],function(err,result) {
+                done();
+                if(err){
+                     console.log(err);
+                     res.status(400).send(err);
+                }
+                else {
+                  res.status(200).send("Question "+ req.body.question_text+ " has been inserted");
+                }
+             });
+      });
+});
+
 // adding functionality to log the requests
 app.use(function (req, res, next) {
     var filename = path.basename(req.url);
