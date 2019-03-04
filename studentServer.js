@@ -72,7 +72,8 @@ app.get('/postgistest', function (req, res) {
 });
 
 
-//
+// Viewing Your Data as GeoJSON
+// serve geoJSON for a fixed table
 app.get('/getFormData/:port_id', function (req, res) {
     pool.connect(function (err, client, done) {
         if (err) {
@@ -103,6 +104,77 @@ app.get('/getFormData/:port_id', function (req, res) {
     ;
 })
 ;
+
+
+// generate GeoJSON from any spatial table
+// specifying the tablename and the name of the geometry column
+app.get('/getGeoJSON/:tablename/:geomcolumn', function (req, res) {
+    pool.connect(function (err, client, done) {
+        if (err) {
+            console.log("not able to get connection " + err);
+            res.status(400).send(err);
+        }
+
+        var colnames = "";
+        var tablename = req.params.tablename;
+        var geomcolumn = req.params.geomcolumn;
+        console.log(req.params.tablename);
+        console.log(req.params.geomcolumn);
+        // first get a list of the columns that are in the table
+        // use string_agg to generate a comma separated list that can then be pasted into the next query
+        var querystring = "select string_agg(colname,',') from ( select column_name as colname ";
+        querystring += " FROM information_schema.columns as colname ";
+        querystring += " where table_name   = $1";
+        querystring += " and column_name <> $2";
+        querystring += " and data_type <> 'USER-DEFINED') as cols ";
+
+        console.log(querystring);
+
+        // now run the query
+        client.query(querystring, [tablename, geomcolumn], function (err, result) {
+            //call `done()` to release the client back to the pool
+            done();
+            if (err) {
+                console.log(err);
+                res.status(400).send(err);
+            }
+            thecolnames = result.rows[0]['string_agg'];
+            colnames = thecolnames;
+            console.log("the colnames " + thecolnames);
+
+            // now use the inbuilt geoJSON functionality
+            // and create the required geoJSON format using a query adapted from here:
+            // http://www.postgresonline.com/journal/archives/267-Creating-GeoJSON-Feature-Collections-with-JSON-and-PostGIS-functions.html, accessed 4th January 2018
+            // note that query needs to be a single string with no line breaks so built it up bit by bit
+
+            var querystring = " SELECT 'FeatureCollection' As type, array_to_json(array_agg(f)) As features  FROM ";
+            querystring += "(SELECT 'Feature' As type     , ST_AsGeoJSON(lg." + req.params.geomcolumn + ")::json As geometry, ";
+            querystring += "row_to_json((SELECT l FROM (SELECT " + colnames + ") As l      )) As properties";
+
+            // depending on whether we have a port number, do differen things
+            if (req.params.portNumber) {
+                querystring += "   FROM " + req.params.tablename + "  As lg where lg.port_id = '" + req.params.portNumber + "'  limit 100  ) As f ";
+            } else {
+                querystring += "   FROM " + req.params.tablename + "  As lg limit 100  ) As f ";
+            }
+            console.log(querystring);
+
+
+            // run the second query
+            client.query(querystring, function (err, result) {
+                //call `done()` to release the client back to the pool
+                done();
+                if (err) {
+                    console.log(err);
+                    res.status(400).send(err);
+                }
+                res.status(200).send(result.rows);
+            });
+
+        });
+    });
+});
+
 
 // add POST request to studentServer.js
 app.post('/reflectData', function (req, res) {
@@ -139,7 +211,7 @@ app.post('/uploadData', function (req, res) {
 
 
         var querystring = "INSERT into formdata (name,surname,module, port_id,language, modulelist, lecturetime, geom) values ($1,$2,$3,$4,$5,$6,$7,";
-        var querystring = querystring + geometrystring + ")";
+        querystring = querystring + geometrystring + ")";
         console.log(querystring);
         client.query(querystring, [name, surname, module, portnum, language, modulelist, lecturetime], function (err, result) {
             done();
